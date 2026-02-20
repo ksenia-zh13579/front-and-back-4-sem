@@ -10,7 +10,7 @@ app.use(cors({
     origin: "http://localhost:3001",
     methods: ["GET", "POST", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-}));
+})); 
 
 let users = [
     {id: nanoid(6), name: 'Петр', age: 16},

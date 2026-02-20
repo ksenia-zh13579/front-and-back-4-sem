@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import "./UsersPage.css";
 import UsersList from "../../components/UsersList";
 import UserModal from "../../components/UserModal";
@@ -110,8 +110,8 @@ export default function UsersPage() {
                 </div>
             </main>
             <footer className="footer">
-                <div className="footer__inner">© {new Date().getFullYear()}
-                    Users App
+                <div className="footer__inner">
+                    © {new Date().getFullYear()} Users App
                 </div>
             </footer>
             <UserModal
