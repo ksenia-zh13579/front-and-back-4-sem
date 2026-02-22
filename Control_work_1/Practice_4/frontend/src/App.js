@@ -1,10 +1,10 @@
-import UsersPage from "./pages/UsersPage/UsersPage";
+import ProductsPage from "./pages/ProductsPage/ProductsPage";
 
 // главный компонент приложения
 function App() {
     return (
         <div className="App">
-            <UsersPage />
+            <ProductsPage />
         </div>
     );
 }

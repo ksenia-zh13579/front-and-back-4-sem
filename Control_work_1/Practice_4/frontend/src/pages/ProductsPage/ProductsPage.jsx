@@ -1,84 +1,84 @@
-import React, { useMemo, useState, useEffect } from "react";
-import "./UsersPage.css";
-import UsersList from "../../components/UsersList";
-import UserModal from "../../components/UserModal";
+import { useMemo, useState, useEffect } from "react";
+import "./ProductsPage.css";
+import ProductsList from "../../components/ProductsList.jsx";
+import ProductModal from "../../components/ProductModal.jsx";
 import { api } from "../../api/index.js";
 
-export default function UsersPage() {
-    const [users, setUsers] = useState([]);
+export default function ProductsPage() {
+    const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState("create"); // "create" | "edit"
-    const [editingUser, setEditingUser] = useState(null);
+    const [editingProduct, setEditingProduct] = useState(null);
 
     useEffect(() => {
-        loadUsers();
+        loadProducts();
     }, []);
 
-    const loadUsers = async () => {
+    const loadProducts = async () => {
         try {
             setLoading(true);
-            const data = await api.getUsers();
-            setUsers(data);
+            const data = await api.getProducts();
+            setProducts(data);
         } catch (err) {
             console.error(err);
-            alert("Ошибка загрузки пользователей");
+            alert("Ошибка загрузки товаров");
         } finally {
             setLoading(false);
         }
     };
 
     const nextId = useMemo(() => {
-        const maxId = users.reduce((m, u) => Math.max(m, u.id), 0);
+        const maxId = products.reduce((m, u) => Math.max(m, u.id), 0);
         return maxId + 1;
-    }, [users]);
+    }, [products]);
 
     const openCreate = () => {
         setModalMode("create");
-        setEditingUser(null);
+        setEditingProduct(null);
         setModalOpen(true);
     };
 
-    const openEdit = (user) => {
+    const openEdit = (product) => {
         setModalMode("edit");
-        setEditingUser(user);
+        setEditingProduct(product);
         setModalOpen(true);
     };
 
     const closeModal = () => {
         setModalOpen(false);
-        setEditingUser(null);
+        setEditingProduct(null);
     };
 
     const handleDelete = async (id) => {
-        const ok = window.confirm("Удалить пользователя?");
+        const ok = window.confirm("Удалить товар?");
         if (!ok) return;
         
         try {
-            await api.deleteUser(id);
-            setUsers((prev) => prev.filter((u) => u.id !== id));
+            await api.deleteProduct(id);
+            setProducts((prev) => prev.filter((u) => u.id !== id));
         } catch (err) {
             console.error(err);
-            alert("Ошибка удаления пользователя");
+            alert("Ошибка удаления товара");
         }
     };
 
     const handleSubmitModal = async (payload) => {
         try {
             if (modalMode === "create") {
-                const newUser = await api.createUser(payload);
-                setUsers((prev) => [ ... prev, newUser]);
+                const newProduct = await api.createProduct(payload);
+                setProducts((prev) => [ ... prev, newProduct]);
             } else {
-                const updatedUser = await api.updateUser(payload.id, payload);
-                setUsers((prev) =>
-                    prev.map((u) => (u.id === payload.id ? updatedUser : u))
+                const updatedProduct = await api.updateProduct(payload.id, payload);
+                setProducts((prev) =>
+                    prev.map((u) => (u.id === payload.id ? updatedProduct : u))
                 );
             }
             closeModal();
         } catch (err) {
             console.error(err);
-            alert("Ошибка сохранения пользователя");
+            alert("Ошибка сохранения товара");
         }
     };
 
@@ -86,14 +86,14 @@ export default function UsersPage() {
         <div className="page">
             <header className="header">
                 <div className="header__inner">
-                    <div className="brand">Users App</div>
-                    <div className="header__right">React</div>
+                    <div className="brand">Мастерица</div>
+                    <div className="header__right">Товары для хобби и рукоделия</div>
                 </div>
             </header>
             <main className="main">
                 <div className="container">
                     <div className="toolbar">
-                        <h1 className="title">Пользователи</h1>
+                        <h1 className="title">Товары для рукоделия</h1>
                         <button className="btn btn--primary" onClick={openCreate}>
                             + Создать
                         </button>
@@ -101,8 +101,8 @@ export default function UsersPage() {
                     {loading ? (
                         <div className="empty">Загрузка...</div>
                     ) : (
-                        <UsersList
-                        users={users}
+                        <ProductsList
+                        products={products}
                         onEdit={openEdit}
                         onDelete={handleDelete}
                         />
@@ -111,13 +111,13 @@ export default function UsersPage() {
             </main>
             <footer className="footer">
                 <div className="footer__inner">
-                    © {new Date().getFullYear()} Users App
+                    © {new Date().getFullYear()} Мастерица
                 </div>
             </footer>
-            <UserModal
+            <ProductModal
                 open={modalOpen}
                 mode={modalMode}
-                initialUser={editingUser}
+                initialProduct={editingProduct}
                 onClose={closeModal}
                 onSubmit={handleSubmitModal}
             />

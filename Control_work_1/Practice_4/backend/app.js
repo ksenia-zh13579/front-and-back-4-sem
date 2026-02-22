@@ -12,10 +12,87 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
 })); 
 
-let users = [
-    {id: nanoid(6), name: 'Петр', age: 16},
-    {id: nanoid(6), name: 'Иван', age: 18},
-    {id: nanoid(6), name: 'Дарья', age: 20},
+let products = [
+    {
+        id: nanoid(6), 
+        name: 'Нитки мулине', 
+        category: 'Вышивание',
+        description: 'Моток ниток мулине 8 м, цвета в ассортименте',
+        price: 90,
+        quantity: 100
+    },
+    {
+        id: nanoid(6), 
+        name: 'Пряжа шерстяная', 
+        category: 'Вязание',
+        description: 'Моток пряжи шерстяной 50 м, цвета в ассортименте',
+        price: 150,
+        quantity: 100
+    },
+    {
+        id: nanoid(6), 
+        name: 'Канва Aida 14ct', 
+        category: 'Вышивание',
+        description: 'Канва 14ct для вышивания крестом нитками мулине',
+        price: 350,
+        quantity: 80
+    },
+    {
+        id: nanoid(6), 
+        name: 'Иглы гобеленовые', 
+        category: 'Вышивание',
+        description: 'Иглы гобеленовые размера 20-24, подходят для вышивания по плотной ткани и по канве размера 14-16 ct',
+        price: 335,
+        quantity: 50
+    },
+    {
+        id: nanoid(6), 
+        name: 'Пряжа льняная', 
+        category: 'Вязание',
+        description: 'Моток пряжи шерстяной 50 м, цвета в ассортименте',
+        price: 450,
+        quantity: 120
+    },
+    {
+        id: nanoid(6), 
+        name: 'Набор крючков для вязания', 
+        category: 'Вязание',
+        description: 'Крючки для вязания 8 шт, подходят для шерстяной и льняной пряжи',
+        price: 365,
+        quantity: 40
+    },
+    {
+        id: nanoid(6), 
+        name: 'Набор спиц', 
+        category: 'Вязание',
+        description: 'Набор спиц для вязания 10 шт, 5 пар',
+        price: 447,
+        quantity: 50
+    },
+    {
+        id: nanoid(6), 
+        name: 'Шпагат джутовый 1.7 мм', 
+        category: 'Плетение',
+        description: 'Моток шпагата, 100% джут, ширина 1.7 мм, 10 м, цвет в ассортименте',
+        price: 99,
+        quantity: 60
+    },
+    {
+        id: nanoid(6), 
+        name: 'Шнур вощёный 0.8 мм', 
+        category: 'Плетение',
+        description: 'Моток шнура вощёного, ширина 0.8 мм, 12 м, цвет в ассортименте',
+        price: 165,
+        quantity: 65
+    },
+    {
+        id: nanoid(6), 
+        name: 'Нитки хлопковые 2 мм', 
+        category: 'Плетение',
+        description: 'Моток ниток, ширина 2 мм, 100% хлопок, 40 м, цвет в ассортименте',
+        price: 149,
+        quantity: 110
+    }
 ]
 
 // Middleware для парсинга JSON
@@ -35,74 +112,84 @@ app.use((req, res, next) => {
 });
 
 // Функция-помощник для получения пользователя из списка
-function findUserOr404(id, res) {
-    const user = users.find(u => u.id == id);
+function findProductOr404(id, res) {
+    const product = products.find(u => u.id == id);
 
-    if (!user) {
-        res.status(404).json({ error: "User not found" });
+    if (!product) {
+        res.status(404).json({ error: "Product not found" });
         return null;
     }
 
-    return user;
+    return product;
 }
 
 // Функция для добавления нового пользователя
-// POST /api/users
-app.post("/api/users", (req, res) => {
-    const { name, age } = req.body;
+// POST /api/products
+app.post("/api/products", (req, res) => {
+    const { name, category, description, price, quantity } = req.body;
 
-    const newUser = {
+    const newProduct = {
         id: nanoid(6),
         name: name.trim(),
-        age: Number(age),
+        category: category.trim(),
+        description: description.trim(),
+        price: Number(price),
+        quantity: Number(quantity)
     };
 
-    users.push(newUser);
-    res.status(201).json(newUser);
+    products.push(newProduct);
+    res.status(201).json(newProduct);
 });
 
 // Функция для получения всех пользователей
-// GET /api/users
-app.get("/api/users", (req, res) => {
-    res.json(users);
+// GET /api/products
+app.get("/api/products", (req, res) => {
+    res.json(products);
 });
 
 // Функция для получения пользователя по id
-// GET /api/users/:id
-app.get("/api/users/:id", (req, res) => {
+// GET /api/products/:id
+app.get("/api/products/:id", (req, res) => {
     const id = req.params.id;
-    const user = findUserOr404(id, res);
-    if (!user) return;
-    res.json(user);
+    const product = findProductOr404(id, res);
+    if (!product) return;
+    res.json(product);
 });
 
 // Функция для редактирования информации о пользователе по id
-// PATCH /api/users/:id
-app.patch("/api/users/:id", (req, res) => {
+// PATCH /api/products/:id
+app.patch("/api/products/:id", (req, res) => {
     const id = req.params.id;
-    const user = findUserOr404(id, res);
-    if (!user) return;
+    const product = findProductOr404(id, res);
+    if (!product) return;
 
     // Нельзя PATCH без полей
-    if (req.body?.name === undefined && req.body?.age === undefined) {
+    if (req.body?.name === undefined 
+        && req.body?.category === undefined 
+        && req.body?.description === undefined
+        && req.body?.price === undefined
+        && req.body?.quantity === undefined) {
         return res.status(400).json({
             error: "Nothing to update",
         });
     }
 
-    const { name, age } = req.body;
-    if (name !== undefined) user.name = name.trim();
-    if (age !== undefined) user.age = Number(age);
-    res.json(user);
+    const { name, category, description, price, quantity } = req.body;
+    if (name !== undefined) product.name = name.trim();
+    if (category !== undefined) product.category = category.trim();
+    if (description !== undefined) product.description = description.trim();
+    if (price !== undefined) product.price = Number(price);
+    if (quantity !== undefined) product.quantity = Number(quantity);
+    res.json(product);
 });
 
 // Функция для удаления пользователя по id
-// DELETE /api/users/:id
-app.delete("/api/users/:id", (req, res) => {
+// DELETE /api/products/:id
+app.delete("/api/products/:id", (req, res) => {
     const id = req.params.id;
-    const exists = users.some((u) => u.id === id);
-    if (!exists) return res.status(404).json({ error: "User not found" });
-    users = users.filter((u) => u.id !== id);
+    const exists = products.some((u) => u.id === id);
+    if (!exists) return res.status(404).json({ error: "Product not found" });
+    products = products.filter((u) => u.id !== id);
 
     // Правильнее 204 без тела
     res.status(204).send();
