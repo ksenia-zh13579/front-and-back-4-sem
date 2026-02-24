@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+// компонент модального окна для создания/редактирования продукта
 export default function ProductModal({ open, mode, initialProduct, onClose, onSubmit }) {
     const [name, setName] = useState("");
     const [category, setCategory] = useState("");
@@ -7,6 +8,7 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
     const [price, setPrice] = useState("");
     const [quantity, setQuantity] = useState("");
 
+    // установка значений в поля ввода
     useEffect(() => {
         if (!open) return;
         setName(initialProduct?.name ?? "");
@@ -20,6 +22,7 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
 
     const title = mode === "edit" ? "Редактирование товара" : "Создание товара";
 
+    // обработка отправки формы
     const handleSubmit = (e) => {
         e.preventDefault();
 

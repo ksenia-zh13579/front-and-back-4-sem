@@ -1,5 +1,5 @@
 
-
+// компонент карточки продукта
 export default function ProductItem({ product, onEdit, onDelete }) {
     return (
         <div className="productCard">

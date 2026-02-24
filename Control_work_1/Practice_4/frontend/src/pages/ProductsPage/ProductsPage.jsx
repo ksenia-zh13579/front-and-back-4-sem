@@ -4,6 +4,7 @@ import ProductsList from "../../components/ProductsList.jsx";
 import ProductModal from "../../components/ProductModal.jsx";
 import { api } from "../../api/index.js";
 
+// компонент страницы с товарами
 export default function ProductsPage() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -16,6 +17,7 @@ export default function ProductsPage() {
         loadProducts();
     }, []);
 
+    // получение списка товаров
     const loadProducts = async () => {
         try {
             setLoading(true);
@@ -51,6 +53,7 @@ export default function ProductsPage() {
         setEditingProduct(null);
     };
 
+    // обработка удаления товара
     const handleDelete = async (id) => {
         const ok = window.confirm("Удалить товар?");
         if (!ok) return;
@@ -64,6 +67,7 @@ export default function ProductsPage() {
         }
     };
 
+    // обработка отправки формы создания/редактирования товара
     const handleSubmitModal = async (payload) => {
         try {
             if (modalMode === "create") {

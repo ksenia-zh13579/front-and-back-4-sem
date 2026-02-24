@@ -1,5 +1,6 @@
 import axios from "axios";
 
+// создание API-клиента
 const apiClient = axios.create({
     baseURL: "http://localhost:3000/api",
     headers: {
@@ -8,6 +9,7 @@ const apiClient = axios.create({
     }
 });
 
+// создание константы api для доступа к маршрутам бэкенда
 export const api = {
     createProduct: async (product) => {
         let response = await apiClient.post("/products", product);

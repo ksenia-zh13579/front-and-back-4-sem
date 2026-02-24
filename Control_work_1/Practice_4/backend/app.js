@@ -6,12 +6,14 @@ const port = 3000;
 
 const cors = require("cors");
 
+// middleware с разрешениями политики cors
 app.use(cors({
     origin: "http://localhost:3001",
     methods: ["GET", "POST", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
 })); 
 
+// массив товаров
 let products = [
     {
         id: nanoid(6), 

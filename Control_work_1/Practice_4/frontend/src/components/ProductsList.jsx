@@ -1,5 +1,6 @@
 import ProductItem from "./ProductItem";
 
+// компонент списка товаров
 export default function ProductsList({ products, onEdit, onDelete }) {
     if (!products.length) {
         return <div className="empty">Товаров пока нет</div>;
