@@ -218,7 +218,7 @@ function findProductOr404(id, res) {
 *                             - quantity
 *                         properties:
 *                             name:
-*                             type: string
+*                                 type: string
 *                             category:
 *                                 type: string 
 *                             description:
