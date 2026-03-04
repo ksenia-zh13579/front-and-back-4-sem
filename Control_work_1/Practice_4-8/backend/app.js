@@ -1,5 +1,6 @@
 const express = require('express');
 const { nanoid } = require('nanoid');
+const bcrypt = require("bcrypt");
 
 // Подключаем Swagger
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -166,6 +167,35 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 *                 description: "Канва 14ct для вышивания крестом нитками мулине"
 *                 price: 350
 *                 quantity: 100
+*         User:
+*             type: object
+*             required:
+*                 - email
+*                 - first_name
+*                 - last_name
+*                 - hashedPassword
+*             properties:
+*                 id:
+*                     type: string
+*                     description: Автоматически сгенерированный уникальный ID пользователя
+*                 email:
+*                     type: string
+*                     description: email пользователя
+*                 first_name:
+*                     type: string 
+*                     description: Имя пользователя
+*                 last_name:
+*                     type: string
+*                     description: Фамилия пользователя
+*                 hashedPassword:
+*                     type: string
+*                     description: Хэшированный пароль пользователя
+*             example:
+*                 id: "abc123"
+*                 email: "example@gmail.com"
+*                 first_name: "ivan"
+*                 last_name: "smirnov"
+*                 hashedPassword: $2b$10$kO6Hq7ZKfV4cPzGm8u7mEuR7r4Xx2p9mP0q3t1yZbCq9Lh5a8b1QW
 */
 
 // Middleware для парсинга JSON
@@ -183,6 +213,169 @@ app.use((req, res, next) => {
     });
     next();
 });
+
+// массив зарегистрированных пользователей
+let users = [];
+
+// функция для поиска пользователя по email
+function findUserOr404(email, res) {
+    const user = users.find(u => u.email == email);
+
+    if (!user) {
+        res.status(404).json({ error: "user not found" });
+        return null;
+    }
+
+    return user;
+}
+
+// функции для хэширования и проверки пароля
+async function hashPassword(password) {
+    const rounds = 10;
+    return bcrypt.hash(password, rounds);
+}
+
+async function verifyPassword(password, passwordHash) {
+    return bcrypt.compare(password, passwordHash);
+}
+
+/**
+* @swagger
+* /api/auth/register:
+*     post:
+*         summary: Регистрация пользователя
+*         description: Создает нового пользователя с хешированным паролем
+*         tags: [Auth]
+*         requestBody:
+*             required: true
+*             content:
+*                 application/json:
+*                     schema:
+*                         type: object
+*                         required:
+*                             - email
+*                             - first_name
+*                             - last_name
+*                             - password
+*                         properties:
+*                             email:
+*                                 type: string
+*                                 example: example@gmail.com
+*                             first_name:
+*                                 type: string
+*                                 example: ivan
+*                             last_name:
+*                                 type: string
+*                                 example: smirnov
+*                             password:
+*                                 type: string
+*                                 example: qwerty123
+*         responses:
+*             201:
+*                 description: Пользователь успешно создан
+*                 content:
+*                     application/json:
+*                         schema:
+*                             type: object
+*                             properties:
+*                                 id:
+*                                     type: string
+*                                     example: ab12cd
+*                                 email:
+*                                     type: string
+*                                     example: example@gmail.com
+*                                 first_name:
+*                                     type: string
+*                                     example: ivan
+*                                 last_name:
+*                                     type: string
+*                                     example: smirnov
+*                                 hashedPassword:
+*                                     type: string
+*                                     example: $2b$10$kO6Hq7ZKfV4cPzGm8u7mEuR7r4Xx2p9mP0q3t1yZbCq9Lh5a8b1QW
+*             400:
+*               description: Некорректные данные
+*/
+app.post("/api/auth/register", async (req, res) => {
+    const { email, first_name, last_name, password } = req.body;
+
+    if (!email || !first_name || !last_name || !password) {
+        return res.status(400).json({ error: "email, first_name, last_name and password are required" });
+    }
+
+    const newUser = {
+        email: email,
+        first_name: first_name,
+        last_name: last_name,
+        hashedPassword: await hashPassword(password)
+    };
+
+    users.push(newUser);
+    res.status(201).json(newUser);
+});
+
+/**
+* @swagger
+* /api/auth/login:
+*     post:
+*         summary: Авторизация пользователя
+*         description: Проверяет логин и пароль пользователя
+*         tags: [Auth]
+*         requestBody:
+*             required: true
+*             content:
+*                 application/json:
+*                     schema:
+*                         type: object
+*                         required:
+*                             - email
+*                             - password
+*                         properties:
+*                             email:
+*                                 type: string
+*                                 example: example@gmail.com
+*                             password:
+*                                 type: string
+*                                 example: qwerty123
+*         responses:
+*             200:
+*                 description: Успешная авторизация
+*                 content:
+*                     application/json:
+*                         schema:
+*                             type: object
+*                             properties:
+*                                 login:
+*                                     type: boolean
+*                                     example: true
+*             400:
+*               description: Отсутствуют обязательные поля
+*             401:
+*               description: Неверные учетные данные
+*             404:
+*               description: Пользователь не найден
+*/
+app.post("/api/auth/login", async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "email and password are required" });
+    }
+
+    const user = findUserOr404(email, res);
+    if (!user) return;
+    isAuthentethicated = await verifyPassword(password, user.hashedPassword);
+
+    if (isAuthentethicated)
+    {
+        res.status(200).json({ login: true });
+    }
+    else
+    {
+        res.status(401).json({ error: "not authentethicated" })
+    }
+});
+
 
 // Функция-помощник для получения товара из списка
 function findProductOr404(id, res) {
