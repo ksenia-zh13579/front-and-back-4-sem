@@ -1,6 +1,7 @@
 const express = require('express');
 const { nanoid } = require('nanoid');
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 // Подключаем Swagger
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -8,6 +9,11 @@ const swaggerUi = require('swagger-ui-express');
 
 const app = express();
 const port = 3000;
+
+// Рандомная строка, задающая подпись (гарантия, что токен выдан именно твоим сервером)
+const JWT_SECRET = "access_secret";
+// Время жизни токена
+const ACCESS_EXPIRES_IN = "15m";
 
 const cors = require("cors");
 
@@ -217,6 +223,32 @@ app.use((req, res, next) => {
 // массив зарегистрированных пользователей
 let users = [];
 
+// Middleware для защищенных маршрутов
+function authMiddleware(req, res, next) {
+    const header = req.headers.authorization || "";
+
+    // Ожидаем формат: Bearer <token>
+    const [scheme, token] = header.split(" ");
+
+    if (scheme !== "Bearer" || !token) {
+        return res.status(401).json({
+            error: "Missing or invalid Authorization header",
+        });
+    }
+
+    try {
+        const payload = jwt.verify(token, JWT_SECRET);
+
+        // сохраняем данные токена в req
+        req.user = payload; // { sub, username, iat, exp }
+        next();
+    } catch (err) {
+        return res.status(401).json({
+            error: "Invalid or expired token",
+        });
+    }
+}
+
 // функция для поиска пользователя по email
 function findUserOr404(email, res) {
     const user = users.find(u => u.email == email);
@@ -238,6 +270,57 @@ async function hashPassword(password) {
 async function verifyPassword(password, passwordHash) {
     return bcrypt.compare(password, passwordHash);
 }
+
+/**
+* @swagger
+* /api/auth/me:
+*     get:
+*         summary: Получение данных текущего пользователя
+*         tags: [Auth]
+*         responses:
+*             200:
+*                 description: Данные пользователя
+*                 content:
+*                     application/json:
+*                         schema:
+*                             type: object
+*                             properties:
+*                                 id:
+*                                     type: string
+*                                     example: ab12cd
+*                                 email:
+*                                     type: string
+*                                     example: example@gmail.com
+*                                 first_name:
+*                                     type: string
+*                                     example: ivan
+*                                 last_name:
+*                                     type: string
+*                                     example: smirnov
+*             404:
+*                 description: Пользователь не найден
+*             401:
+*                 description: Отсутствует или неверный токен
+*/
+app.get("/api/auth/me", authMiddleware, (req, res) => {
+    // sub мы положили в токен при login
+    const userId = req.user.sub;
+    const user = users.find(u => u.id === userId);
+
+    if (!user) {
+        return res.status(404).json({
+            error: "User not found",
+        });
+    }
+
+    // никогда не возвращаем passwordHash
+    res.json({
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name
+    });
+});
 
 /**
 * @swagger
@@ -304,9 +387,10 @@ app.post("/api/auth/register", async (req, res) => {
     }
 
     const newUser = {
-        email: email,
-        first_name: first_name,
-        last_name: last_name,
+        id: nanoid(6),
+        email: email.trim(),
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
         hashedPassword: await hashPassword(password)
     };
 
@@ -345,9 +429,9 @@ app.post("/api/auth/register", async (req, res) => {
 *                         schema:
 *                             type: object
 *                             properties:
-*                                 login:
+*                                 accessToken:
 *                                     type: boolean
-*                                     example: true
+*                                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhbGVraGluIiwiaWF0IjoxNzcyMzk3OTI1LCJleHAiOjE3NzIzOTg4MjV9.lpYoWoIvWSornoxfhyfVYLJh40w-l7OPYLKwPS7r1o
 *             400:
 *               description: Отсутствуют обязательные поля
 *             401:
@@ -366,14 +450,28 @@ app.post("/api/auth/login", async (req, res) => {
     if (!user) return;
     isAuthentethicated = await verifyPassword(password, user.hashedPassword);
 
-    if (isAuthentethicated)
-    {
-        res.status(200).json({ login: true });
-    }
-    else
+    if (!isAuthentethicated)
     {
         res.status(401).json({ error: "not authentethicated" })
     }
+    
+    // Создание access-токена
+    const accessToken = jwt.sign(
+        {
+            sub: user.id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+        },
+        JWT_SECRET,
+        {
+            expiresIn: ACCESS_EXPIRES_IN,
+        }
+    );
+
+    res.json({
+        accessToken,
+    });
 });
 
 
@@ -495,7 +593,7 @@ app.get("/api/products", (req, res) => {
 *             404:
 *                 description: Товар не найден
 */
-app.get("/api/products/:id", (req, res) => {
+app.get("/api/products/:id", authMiddleware, (req, res) => {
     const id = req.params.id;
     const product = findProductOr404(id, res);
 
@@ -549,7 +647,7 @@ app.get("/api/products/:id", (req, res) => {
 *             404:
 *                 description: Товар не найден
 */
-app.patch("/api/products/:id", (req, res) => {
+app.patch("/api/products/:id", authMiddleware, (req, res) => {
     const id = req.params.id;
     const product = findProductOr404(id, res);
     if (!product) return;
@@ -596,7 +694,7 @@ app.patch("/api/products/:id", (req, res) => {
 *             404:
 *                 description: Товар не найден
 */
-app.delete("/api/products/:id", (req, res) => {
+app.delete("/api/products/:id", authMiddleware, (req, res) => {
     const id = req.params.id;
     const exists = products.some((u) => u.id === id);
     if (!exists) return res.status(404).json({ error: "Product not found" });
