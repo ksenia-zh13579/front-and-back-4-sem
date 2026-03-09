@@ -251,3 +251,27 @@ $dangerBg: rgba(239, 68, 68, 0.12);
     color: inherit;
     outline: none;
 }
+
+.userMain {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    gap: 12px;
+
+    .userProperty {
+        display: flex;
+        flex-flow: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 6px;
+
+        &__title {
+        font-weight: 600;
+        font-size: 1.2rem;
+        }
+
+        &__value {
+            opacity: 0.85;
+        }
+    }
+}

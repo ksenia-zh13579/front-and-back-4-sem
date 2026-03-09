@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // компонент модального окна для создания/редактирования продукта
 export default function LoginModal({ open, mode, onClose, onSubmit, openRegister }) 

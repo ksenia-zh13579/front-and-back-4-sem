@@ -3,6 +3,7 @@ import "./ProductsPage.css";
 import ProductsList from "../../components/ProductsList.jsx";
 import ProductModal from "../../components/ProductModal.jsx";
 import LoginModal from "../../components/LoginModal.jsx";
+import UserModal from "../../components/UserModal.jsx";
 import { api } from "../../api/index.js";
 
 // компонент страницы с товарами
@@ -16,7 +17,9 @@ export default function ProductsPage() {
 
     const [loginOpen, setLoginOpen] = useState(false);
     const [loginMode, setLoginMode] = useState("login"); // "login" | "register"
+
     const [currentUser, setCurrentUser] = useState(null);
+    const [profileOpen, setProfileOpen] = useState(false);
 
     useEffect(() => {
         loadProducts();
@@ -120,6 +123,14 @@ export default function ProductsPage() {
         }
     };
 
+    const openProfile = () => {
+        setProfileOpen(true);
+    };
+
+    const closeProfile = () => {
+        setProfileOpen(false);
+    };
+
     return (
         <div className="page">
             <header className="header">
@@ -131,7 +142,7 @@ export default function ProductsPage() {
                                 Войти
                             </button>
                         ) : (
-                            <button className="btn btn--primary">
+                            <button className="btn btn--primary" onClick={openProfile}>
                                 👤 Профиль
                             </button>
                         )}
@@ -176,6 +187,11 @@ export default function ProductsPage() {
                 onClose={closeLoginModal}
                 onSubmit={handleSubmitLogin}
                 openRegister={openRegister}
+            />
+            <UserModal
+                open={profileOpen}
+                currentUser={currentUser}
+                onClose={closeProfile}
             />
         </div>
     );
