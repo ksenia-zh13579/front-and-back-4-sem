@@ -124,6 +124,16 @@ const swaggerOptions = {
                 description: 'Локальный сервер',
             },
         ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                }
+            }
+        },
+        
     },
 
     // Путь к файлам, в которых мы будем писать JSDoc-комментарии (наш текущий файл)
@@ -177,8 +187,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 *             type: object
 *             required:
 *                 - email
-*                 - first_name
-*                 - last_name
+*                 - firstName
+*                 - lastName
 *                 - hashedPassword
 *             properties:
 *                 id:
@@ -187,10 +197,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 *                 email:
 *                     type: string
 *                     description: email пользователя
-*                 first_name:
+*                 firstName:
 *                     type: string 
 *                     description: Имя пользователя
-*                 last_name:
+*                 lastName:
 *                     type: string
 *                     description: Фамилия пользователя
 *                 hashedPassword:
@@ -199,9 +209,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 *             example:
 *                 id: "abc123"
 *                 email: "example@gmail.com"
-*                 first_name: "ivan"
-*                 last_name: "smirnov"
-*                 hashedPassword: $2b$10$kO6Hq7ZKfV4cPzGm8u7mEuR7r4Xx2p9mP0q3t1yZbCq9Lh5a8b1QW
+*                 firstName: "ivan"
+*                 lastName: "smirnov"
+*                 hashedPassword: $2b$10$kO6Hq7ZKfV4cPzGm8u7mEuR7r4Xx2p9mP0q3t1yZbCq9Lh5a8b1QW  
 */
 
 // Middleware для парсинга JSON
@@ -277,6 +287,7 @@ async function verifyPassword(password, passwordHash) {
 *     get:
 *         summary: Получение данных текущего пользователя
 *         tags: [Auth]
+*         security: [bearerAuth: [ ]]
 *         responses:
 *             200:
 *                 description: Данные пользователя
@@ -291,10 +302,10 @@ async function verifyPassword(password, passwordHash) {
 *                                 email:
 *                                     type: string
 *                                     example: example@gmail.com
-*                                 first_name:
+*                                 firstName:
 *                                     type: string
 *                                     example: ivan
-*                                 last_name:
+*                                 lastName:
 *                                     type: string
 *                                     example: smirnov
 *             404:
@@ -317,8 +328,8 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
     res.json({
         id: user.id,
         email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name
+        firstName: user.firstName,
+        lastName: user.lastName
     });
 });
 
@@ -337,17 +348,17 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
 *                         type: object
 *                         required:
 *                             - email
-*                             - first_name
-*                             - last_name
+*                             - firstName
+*                             - lastName
 *                             - password
 *                         properties:
 *                             email:
 *                                 type: string
 *                                 example: example@gmail.com
-*                             first_name:
+*                             firstName:
 *                                 type: string
 *                                 example: ivan
-*                             last_name:
+*                             lastName:
 *                                 type: string
 *                                 example: smirnov
 *                             password:
@@ -367,10 +378,10 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
 *                                 email:
 *                                     type: string
 *                                     example: example@gmail.com
-*                                 first_name:
+*                                 firstName:
 *                                     type: string
 *                                     example: ivan
-*                                 last_name:
+*                                 lastName:
 *                                     type: string
 *                                     example: smirnov
 *                                 hashedPassword:
@@ -380,17 +391,17 @@ app.get("/api/auth/me", authMiddleware, (req, res) => {
 *               description: Некорректные данные
 */
 app.post("/api/auth/register", async (req, res) => {
-    const { email, first_name, last_name, password } = req.body;
+    const { email, firstName, lastName, password } = req.body;
 
-    if (!email || !first_name || !last_name || !password) {
-        return res.status(400).json({ error: "email, first_name, last_name and password are required" });
+    if (!email || !firstName || !lastName || !password) {
+        return res.status(400).json({ error: "email, firstName, lastName and password are required" });
     }
 
     const newUser = {
         id: nanoid(6),
         email: email.trim(),
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         hashedPassword: await hashPassword(password)
     };
 
@@ -460,8 +471,8 @@ app.post("/api/auth/login", async (req, res) => {
         {
             sub: user.id,
             email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
+            firstName: user.firstName,
+            lastName: user.lastName,
         },
         JWT_SECRET,
         {
@@ -574,6 +585,7 @@ app.get("/api/products", (req, res) => {
 * @swagger
 * /api/products/{id}:
 *     get:
+*         security: [bearerAuth: []]
 *         summary: Получает товар по ID
 *         tags: [Products]
 *         parameters:
@@ -592,6 +604,8 @@ app.get("/api/products", (req, res) => {
 *                             $ref: '#/components/schemas/Product'
 *             404:
 *                 description: Товар не найден
+*             401:
+*                 description: Отсутствует или неверный токен
 */
 app.get("/api/products/:id", authMiddleware, (req, res) => {
     const id = req.params.id;
@@ -609,6 +623,7 @@ app.get("/api/products/:id", authMiddleware, (req, res) => {
 * @swagger
 * /api/products/{id}:
 *     patch:
+*         security: [bearerAuth: []]
 *         summary: Обновляет данные товара
 *         tags: [Products]
 *         parameters:
@@ -646,6 +661,8 @@ app.get("/api/products/:id", authMiddleware, (req, res) => {
 *                 description: Нет данных для обновления
 *             404:
 *                 description: Товар не найден
+*             401:
+*                 description: Отсутствует или неверный токен
 */
 app.patch("/api/products/:id", authMiddleware, (req, res) => {
     const id = req.params.id;
@@ -679,6 +696,7 @@ app.patch("/api/products/:id", authMiddleware, (req, res) => {
 * @swagger
 * /api/products/{id}:
 *     delete:
+*         security: [bearerAuth: []]
 *         summary: Удаляет товар
 *         tags: [Products]
 *         parameters:
@@ -693,6 +711,8 @@ app.patch("/api/products/:id", authMiddleware, (req, res) => {
 *                 description: Товар успешно удален (нет тела ответа)
 *             404:
 *                 description: Товар не найден
+*             401:
+*                 description: Отсутствует или неверный токен
 */
 app.delete("/api/products/:id", authMiddleware, (req, res) => {
     const id = req.params.id;

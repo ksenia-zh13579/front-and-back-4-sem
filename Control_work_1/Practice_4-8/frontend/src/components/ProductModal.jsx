@@ -72,7 +72,7 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
             >
                 <div className="modal__header">
                     <div className="modal__title">{title}</div>
-                    <button className="iconBtn" onClick={onClose} arialabel="Закрыть">
+                    <button className="iconBtn" onClick={onClose} aria-label="Закрыть">
                         ✕
                     </button>
                 </div>

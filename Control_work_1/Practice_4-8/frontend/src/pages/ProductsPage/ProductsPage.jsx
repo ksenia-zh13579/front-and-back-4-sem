@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import "./ProductsPage.css";
 import ProductsList from "../../components/ProductsList.jsx";
 import ProductModal from "../../components/ProductModal.jsx";
+import LoginModal from "../../components/LoginModal.jsx";
 import { api } from "../../api/index.js";
 
 // компонент страницы с товарами
@@ -12,6 +13,10 @@ export default function ProductsPage() {
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState("create"); // "create" | "edit"
     const [editingProduct, setEditingProduct] = useState(null);
+
+    const [loginOpen, setLoginOpen] = useState(false);
+    const [loginMode, setLoginMode] = useState("login"); // "login" | "register"
+    const [currentUser, setCurrentUser] = useState(null);
 
     useEffect(() => {
         loadProducts();
@@ -30,11 +35,6 @@ export default function ProductsPage() {
             setLoading(false);
         }
     };
-
-    const nextId = useMemo(() => {
-        const maxId = products.reduce((m, u) => Math.max(m, u.id), 0);
-        return maxId + 1;
-    }, [products]);
 
     const openCreate = () => {
         setModalMode("create");
@@ -86,12 +86,57 @@ export default function ProductsPage() {
         }
     };
 
+    const openLogin = () => {
+        setLoginMode("login");
+        setLoginOpen(true);
+    };
+
+    const openRegister = () => {
+        setLoginMode("register");
+        setLoginOpen(true);
+    };
+
+    const closeLoginModal = () => {
+        setLoginOpen(false);
+    };
+
+    // обработка отправки формы входа/регистрации
+    const handleSubmitLogin = async (payload) => {
+        try {
+            if (loginMode === "login") {
+                const userData = await api.login(payload);
+                setCurrentUser(userData);
+                alert("Вход выполнен успешно!");
+            } else {
+                const newUser = await api.register(payload);
+                setCurrentUser(newUser);
+                alert("Регистрация выполнена успешно!");
+            }
+
+            closeLoginModal();
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка авторизации");
+        }
+    };
+
     return (
         <div className="page">
             <header className="header">
                 <div className="header__inner">
                     <div className="brand">Мастерица</div>
-                    <div className="header__right">Товары для хобби и рукоделия</div>
+                    <div className="header__right">
+                        {!currentUser ? (
+                            <button className="btn btn--primary" onClick={openLogin}>
+                                Войти
+                            </button>
+                        ) : (
+                            <button className="btn btn--primary">
+                                👤 Профиль
+                            </button>
+                        )}
+                    </div>
+                    
                 </div>
             </header>
             <main className="main">
@@ -124,6 +169,13 @@ export default function ProductsPage() {
                 initialProduct={editingProduct}
                 onClose={closeModal}
                 onSubmit={handleSubmitModal}
+            />
+            <LoginModal 
+                open={loginOpen}
+                mode={loginMode}
+                onClose={closeLoginModal}
+                onSubmit={handleSubmitLogin}
+                openRegister={openRegister}
             />
         </div>
     );

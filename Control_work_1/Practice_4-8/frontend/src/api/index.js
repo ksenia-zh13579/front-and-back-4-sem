@@ -34,5 +34,20 @@ export const api = {
     deleteProduct: async (id) => {
         let response = await apiClient.delete(`/products/${id}`);
         return response.data;
+    },
+
+    getCurrentUser: async () => {
+        let response = await apiClient.get("/auth/me");
+        return response.data;
+    },
+
+    login: async (userData) => {
+        let response = await apiClient.post("/auth/login", userData);
+        return response.data;
+    },
+
+    register: async (user) => {
+        let response = await apiClient.post("/auth/register", user);
+        return response.data;
     }
 }
