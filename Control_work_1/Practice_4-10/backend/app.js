@@ -10,10 +10,45 @@ const swaggerUi = require('swagger-ui-express');
 const app = express();
 const port = 3000;
 
-// Рандомная строка, задающая подпись (гарантия, что токен выдан именно твоим сервером)
-const JWT_SECRET = "access_secret";
-// Время жизни токена
+// Секреты подписи
+const ACCESS_SECRET = "access_secret";
+const REFRESH_SECRET = "refresh_secret";
+// Время жизни токенов
 const ACCESS_EXPIRES_IN = "15m";
+const REFRESH_EXPIRES_IN = "7d";
+
+// Хранилище refresh-токенов в памяти
+const refreshTokens = new Set();
+
+function generateAccessToken(user) {
+    return jwt.sign(
+        {
+            sub: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+        },
+        ACCESS_SECRET,
+        {
+            expiresIn: ACCESS_EXPIRES_IN,
+        }
+    );
+}
+
+function generateRefreshToken(user) {
+    return jwt.sign(
+        {
+            sub: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+        },
+        REFRESH_SECRET,
+        {
+            expiresIn: REFRESH_EXPIRES_IN,
+        }
+    );
+}
 
 const cors = require("cors");
 
@@ -247,10 +282,10 @@ function authMiddleware(req, res, next) {
     }
 
     try {
-        const payload = jwt.verify(token, JWT_SECRET);
+        const payload = jwt.verify(token, ACCESS_SECRET);
 
         // сохраняем данные токена в req
-        req.user = payload; // { sub, username, iat, exp }
+        req.user = payload; // { sub, , iat, exp }
         next();
     } catch (err) {
         return res.status(401).json({
@@ -466,23 +501,101 @@ app.post("/api/auth/login", async (req, res) => {
         res.status(401).json({ error: "not authentethicated" })
     }
     
-    // Создание access-токена
-    const accessToken = jwt.sign(
-        {
-            sub: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-        },
-        JWT_SECRET,
-        {
-            expiresIn: ACCESS_EXPIRES_IN,
-        }
-    );
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    refreshTokens.add(refreshToken);
 
     res.json({
         accessToken,
+        refreshToken,
     });
+});
+
+//Маршрут для обновления токена
+/**
+* @swagger
+* /api/auth/refresh:
+*     post:
+*         summary: Обновление токена
+*         description: В случае истечения срока токена доступа проверяет наличие старого токена обновления и заменяет оба токена на новые
+*         tags: [Auth]
+*         requestBody:
+*             required: true
+*             content:
+*                 application/json:
+*                     schema:
+*                         type: object
+*                         required:
+*                             - refreshToken
+*                         properties:
+*                             refreshToken:
+*                                 type: string
+*                                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhbGVraGluIiwiaWF0IjoxNzcyMzk3OTI1LCJleHAiOjE3NzIzOTg4MjV9.lpYoWoIvWSornoxfhyfVYLJh40w-l7OPYLKwPS7r1o
+*         responses:
+*             200:
+*                 description: Токен успешно обновлен
+*                 content:
+*                     application/json:
+*                         schema:
+*                             type: object
+*                             properties:
+*                                 accessToken:
+*                                     type: string
+*                                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhbGVraGluIiwiaWF0IjoxNzcyMzk3OTI1LCJleHAiOjE3NzIzOTg4MjV9.lpYoWoIvWSornoxfhyfVYLJh40w-l7OPYLKwPS7r1o
+*                                 refreshToken:
+*                                     type: string
+*                                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhbGVraGluIiwiaWF0IjoxNzcyMzk3OTI1LCJleHAiOjE3NzIzOTg4MjV9.lpYoWoIvWSornoxfhyfVYLJh40w-l7OPYLKwPS7r1o
+*             400:
+*               description: Отсутствуют обязательные поля
+*             401:
+*               description: Неверный или истёкший токен обновления
+*             404:
+*               description: Пользователь не найден
+*/
+app.post("/api/auth/refresh", (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+        return res.status(400).json({
+            error: "refreshToken is required",
+        });
+    }
+
+    if (!refreshTokens.has(refreshToken)) {
+        return res.status(401).json({
+            error: "Invalid refresh token",
+        });
+    }
+
+    try {
+        const payload = jwt.verify(refreshToken, REFRESH_SECRET);
+        const user = users.find((u) => u.id === payload.sub);
+
+        if (!user) {
+            return res.status(404).json({
+                error: "User not found",
+            });
+        }
+
+        // Ротация refresh-токена:
+        // старый удаляем, новый создаём
+        refreshTokens.delete(refreshToken);
+
+        const newAccessToken = generateAccessToken(user);
+        const newRefreshToken = generateRefreshToken(user);
+
+        refreshTokens.add(newRefreshToken);
+
+        res.json({
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+        });
+    } catch (err) {
+        return res.status(401).json({
+            error: "Invalid or expired refresh token",
+        });
+    }
 });
 
 
