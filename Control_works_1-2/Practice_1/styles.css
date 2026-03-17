@@ -1,0 +1,23 @@
+.card {
+  padding: 16px;
+  border-radius: 4px;
+}
+.card--accent {
+  border: 2px solid #59e185;
+}
+.card__title {
+  font-size: 20px;
+  font-weight: bold;
+}
+.card__description {
+  font-size: 16px;
+}
+
+.product-photo {
+  display: block;
+  margin: 5px;
+  border: 2px solid #230d9f;
+  border-radius: 8px;
+}
+
+/*# sourceMappingURL=styles.css.map */
