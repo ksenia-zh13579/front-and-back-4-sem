@@ -45,6 +45,11 @@ $dangerBg: rgba(239, 68, 68, 0.12);
     &__right {
         font-size: 14px;
         font-weight: bolder;
+        display: flex;
+        flex-flow: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
     }
 }
 
@@ -212,9 +217,12 @@ $dangerBg: rgba(239, 68, 68, 0.12);
 
     &__link {
         padding: 10px;
-        text-decoration: underline;
-        color: $link;
-        cursor: pointer;
+
+        span {
+            text-decoration: underline;
+            color: $link;
+            cursor: pointer;
+        }
     }
 }
 
@@ -241,6 +249,11 @@ $dangerBg: rgba(239, 68, 68, 0.12);
     gap: 6px;
     font-size: 13px;
     opacity: 0.95;
+
+    &__checkbox {
+        flex-direction: row;
+        align-items: center;
+    }
 }
 
 .input {
@@ -250,6 +263,20 @@ $dangerBg: rgba(239, 68, 68, 0.12);
     background: rgba(255, 255, 255, 0.04);
     color: inherit;
     outline: none;
+
+    &__checkbox {
+        appearance: none;
+        border-radius: 50%;
+        width: 1.2em;
+        height: 1.2em;
+        border: 2px solid $text;
+        transition: 0.2s all linear;
+        margin-right: 5px;
+    }
+
+    &__checkbox:checked {
+        border: 6px solid $text;
+    }
 }
 
 .userMain {

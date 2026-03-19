@@ -226,6 +226,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 *                 - email
 *                 - firstName
 *                 - lastName
+*                 - role
 *                 - hashedPassword
 *             properties:
 *                 id:
@@ -270,9 +271,6 @@ app.use((req, res, next) => {
     });
     next();
 });
-
-// массив зарегистрированных пользователей
-let users = [];
 
 // Middleware для защищенных маршрутов
 function authMiddleware(req, res, next) {
@@ -333,6 +331,32 @@ async function hashPassword(password) {
 async function verifyPassword(password, passwordHash) {
     return bcrypt.compare(password, passwordHash);
 }
+
+// массив зарегистрированных пользователей
+let users = [];
+
+const addAdmins = async () => {
+    users.push(
+        {
+        id : nanoid(6),
+        email: "admin1@gmail.com",
+        firstName: "AdminFN1",
+        lastName: "AdminLN1",
+        hashedPassword: await hashPassword("adminPassword1"),
+        role: "admin"
+    });
+    users.push(
+        {
+        id : nanoid(6),
+        email: "admin2@gmail.com",
+        firstName: "AdminFN2",
+        lastName: "AdminLN2",
+        hashedPassword: await hashPassword("adminPassword2"),
+        role: "admin"
+    });
+}
+
+addAdmins();
 
 /**
 * @swagger
@@ -519,6 +543,9 @@ app.post("/api/auth/register", async (req, res) => {
 *                                 accessToken:
 *                                     type: boolean
 *                                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhbGVraGluIiwiaWF0IjoxNzcyMzk3OTI1LCJleHAiOjE3NzIzOTg4MjV9.lpYoWoIvWSornoxfhyfVYLJh40w-l7OPYLKwPS7r1o
+*                                 refreshToken:
+*                                     type: boolean
+*                                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhbGVraGluIiwiaWF0IjoxNzcyMzk3OTI1LCJleHAiOjE3NzIzOTg4MjV9.lpYoWoIvWSornoxfhyfVYLJh40w-l7OPYLKwPS7r1o
 *             400:
 *               description: Отсутствуют обязательные поля
 *             401:
@@ -661,6 +688,7 @@ function findProductOr404(id, res) {
 *     post:
 *         summary: Создает новый товар
 *         tags: [Products]
+*         security: [bearerAuth: [ ]]
 *         requestBody:
 *             required: true
 *             content:
@@ -721,6 +749,7 @@ app.post("/api/products", authMiddleware, roleMiddleware(["seller"]), (req, res)
 *     get:
 *         summary: Возвращает список всех товаров
 *         tags: [Products]
+*         security: [bearerAuth: [ ]]
 *         responses:
 *             200:
 *                 description: Список товаров
@@ -744,9 +773,9 @@ app.get("/api/products", authMiddleware, roleMiddleware(["user", "seller", "admi
 * @swagger
 * /api/products/{id}:
 *     get:
-*         security: [bearerAuth: []]
 *         summary: Получает товар по ID
 *         tags: [Products]
+*         security: [bearerAuth: [ ]]
 *         parameters:
 *             - in: path
 *               name: id
@@ -897,6 +926,7 @@ app.delete("/api/products/:id", authMiddleware, roleMiddleware(["seller"]), (req
 *     get:
 *         summary: Возвращает список всех пользователей
 *         tags: [Users]
+*         security: [bearerAuth: [ ]]
 *         responses:
 *             200:
 *                 description: Список пользователей

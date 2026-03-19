@@ -8,6 +8,7 @@ export default function LoginModal({ open, mode, onClose, onSubmit, openRegister
     const [repeatPassword, setRepeatPassword] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
+    const [isSeller, setIsSeller] = useState(false);
 
     if (!open) return null;
 
@@ -48,6 +49,7 @@ export default function LoginModal({ open, mode, onClose, onSubmit, openRegister
             const trimmedLastName = lastName.trim();
             const trimmedPassword = password.trim();
             const trimmedRepeatPassword = repeatPassword.trim();
+            const roleStr = (isSeller ? "seller" : "user");
 
             if (!trimmedFirstName) {
                 alert("Введите имя");
@@ -79,18 +81,20 @@ export default function LoginModal({ open, mode, onClose, onSubmit, openRegister
             setRepeatPassword("");
             setFirstName("");
             setLastName("");
+            setIsSeller(false);
 
             onSubmit({
                 email: trimmedEmail,
                 firstName: trimmedFirstName,
                 lastName: trimmedLastName,
-                password: trimmedPassword
+                password: trimmedPassword,
+                role: roleStr
             });
         }
     }
 
     return (
-        <div className="backdrop" onMouseDown={onClose}>
+        <div className="backdrop">
             <div 
                 className="modal" 
                 onMouseDown={(e) => e.stopPropagation()}
@@ -174,6 +178,15 @@ export default function LoginModal({ open, mode, onClose, onSubmit, openRegister
                                     value={repeatPassword}
                                     onChange={(e) => setRepeatPassword(e.target.value)}
                                 />
+                            </label>
+                            <label className="label__checkbox">
+                                <input 
+                                    className="input__checkbox" 
+                                    type="checkbox" 
+                                    name="role" 
+                                    onChange={(e) => setIsSeller(e.target.checked)}
+                                />
+                                Я продавец
                             </label>
                         </>
                     )}

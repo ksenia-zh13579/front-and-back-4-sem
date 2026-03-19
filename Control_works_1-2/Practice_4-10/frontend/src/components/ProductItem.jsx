@@ -1,6 +1,6 @@
 
 // компонент карточки продукта
-export default function ProductItem({ product, onEdit, onDelete }) {
+export default function ProductItem({ currentUser, product, onEdit, onDelete }) {
     return (
         <div className="productCard">
             <div className="productMain">
@@ -11,14 +11,14 @@ export default function ProductItem({ product, onEdit, onDelete }) {
                 <div className="productPrice">Цена: {product.price} руб.</div>
                 <div className="productQuantity">В наличии: {product.quantity} шт.</div>
             </div>
-            <div className="productActions">
+            {currentUser.role === "seller" ? (<div className="productActions">
                 <button className="btn" onClick={() => onEdit(product)}>
                     Редактировать
                 </button>
                 <button className="btn btn--danger" onClick={() => onDelete(product.id)}>
                     Удалить
                 </button>
-            </div>
+            </div>) : (null)}
         </div>
     );
 }

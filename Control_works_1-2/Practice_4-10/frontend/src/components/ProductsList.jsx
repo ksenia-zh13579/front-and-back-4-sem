@@ -1,7 +1,7 @@
 import ProductItem from "./ProductItem";
 
 // компонент списка товаров
-export default function ProductsList({ products, onEdit, onDelete }) {
+export default function ProductsList({ currentUser, products, onEdit, onDelete }) {
     if (!products.length) {
         return <div className="empty">Товаров пока нет</div>;
     }
@@ -9,7 +9,7 @@ export default function ProductsList({ products, onEdit, onDelete }) {
     return (
         <div className="list">
             {products.map((u) => (
-                <ProductItem key={u.id} product={u} onEdit={onEdit} onDelete={onDelete} />
+                <ProductItem key={u.id} currentUser={currentUser} product={u} onEdit={onEdit} onDelete={onDelete} />
             ))}
         </div>
     );

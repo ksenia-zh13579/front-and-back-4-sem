@@ -4,6 +4,8 @@ import ProductsList from "../../components/ProductsList.jsx";
 import ProductModal from "../../components/ProductModal.jsx";
 import LoginModal from "../../components/LoginModal.jsx";
 import UserModal from "../../components/UserModal.jsx";
+import UsersListModal from "../../components/UsersListModal.jsx";
+import UserChange from "../../components/UserChange.jsx";
 import { api } from "../../api/index.js";
 
 // компонент страницы с товарами
@@ -21,16 +23,24 @@ export default function ProductsPage() {
     const [currentUser, setCurrentUser] = useState(null);
     const [profileOpen, setProfileOpen] = useState(false);
 
+    const [users, setUsers] = useState([]);
+    const [isUserListOpen, setIsUserListOpen] = useState(false);
+    const [isUserChangeOpen, setIsUserChangeOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
+
     useEffect(() => {
         loadProducts();
-    }, []);
+    }, [currentUser]);
 
     // получение списка товаров
     const loadProducts = async () => {
         try {
-            setLoading(true);
-            const data = await api.getProducts();
-            setProducts(data);
+            if (currentUser)
+            {
+                setLoading(true);
+                const data = await api.getProducts();
+                setProducts(data);
+            }
         } catch (err) {
             console.error(err);
             alert("Ошибка загрузки товаров");
@@ -107,16 +117,18 @@ export default function ProductsPage() {
     const handleSubmitLogin = async (payload) => {
         try {
             if (loginMode === "login") {
-                const userData = await api.login(payload);
+                await api.login(payload);
+                const userData = await api.getCurrentUser();
                 setCurrentUser(userData);
                 alert("Вход выполнен успешно!");
+                closeLoginModal();
             } else {
                 const newUser = await api.register(payload);
-                setCurrentUser(newUser);
-                alert("Регистрация выполнена успешно!");
+                alert("Регистрация выполнена успешно! Теперь вы можете войти в аккаунт со своими логином и паролем!");
+                setLoginMode("login");
             }
 
-            closeLoginModal();
+            
         } catch (err) {
             console.error(err);
             alert("Ошибка авторизации");
@@ -129,6 +141,94 @@ export default function ProductsPage() {
 
     const closeProfile = () => {
         setProfileOpen(false);
+    };
+
+
+    useEffect(() => {
+        loadUsers();
+    }, [currentUser]);
+
+    // получение списка пользователей
+    const loadUsers = async () => {
+        try {
+            if (currentUser && currentUser.role === "admin")
+            {
+                setLoading(true);
+                const data = await api.getUsers();
+                setUsers(data);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка загрузки пользователей");
+        } finally {
+            setLoading(false);
+        }
+    }; 
+    
+    const openUsersList = () => {
+        setIsUserListOpen(true);
+    }
+
+    const closeUsersList = () => {
+        setIsUserListOpen(false);
+    }
+
+    const openUserChange = (user) => {
+        setEditingUser(user);
+        setIsUserChangeOpen(true);
+    }
+
+    const closeUserChange = () => {
+        setEditingUser(null);
+        setIsUserChangeOpen(false);
+    }
+
+    // обработка удаления пользователя
+    const handleDeleteUser = async (id) => {
+        if (id === currentUser.id)
+        {
+            alert("Нельзя удалить свой собственный профиль!");
+            return;
+        }
+
+        const ok = window.confirm("Удалить пользователя?");
+        if (!ok) return;
+        
+        try {
+            await api.deleteUser(id);
+            setUsers((prev) => prev.filter((u) => u.id !== id));
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка удаления пользователя");
+        }
+    };
+
+    // обработка отправки формы редактирования пользователя
+    const handleUserChange = async (payload) => {
+        try {
+            const updatedUser = await api.updateUser(payload.id, payload);
+            setUsers((prev) =>
+                prev.map((u) => (u.id === payload.id ? updatedUser : u))
+            );
+
+            if (payload.id === currentUser.id)
+            {
+                setCurrentUser(updatedUser);
+            }
+
+            closeUserChange();
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка сохранения пользователя");
+        }
+    };
+
+    const handleExit = () => {
+        setCurrentUser(null);
+        closeProfile();
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        alert("Вы вышли из системы!");
     };
 
     return (
@@ -146,6 +246,11 @@ export default function ProductsPage() {
                                 👤 Профиль
                             </button>
                         )}
+                        {currentUser?.role === "admin" ? (
+                            <button className="btn btn--danger" onClick={openUsersList}>
+                                Пользователи
+                            </button>
+                        ) : (null)}
                     </div>
                     
                 </div>
@@ -154,18 +259,27 @@ export default function ProductsPage() {
                 <div className="container">
                     <div className="toolbar">
                         <h1 className="title">Товары для рукоделия</h1>
-                        <button className="btn btn--primary" onClick={openCreate}>
-                            + Создать
-                        </button>
+                        {currentUser?.role === "seller" ? (
+                            <button className="btn btn--primary" onClick={openCreate}>
+                                + Создать
+                            </button>
+                        ) : (null)}
                     </div>
-                    {loading ? (
-                        <div className="empty">Загрузка...</div>
-                    ) : (
-                        <ProductsList
-                        products={products}
-                        onEdit={openEdit}
-                        onDelete={handleDelete}
-                        />
+                    {currentUser ? (
+                        loading ? (
+                            <div className="empty">Загрузка...</div>
+                        ) : (
+                            <ProductsList
+                                currentUser={currentUser}
+                                products={products}
+                                onEdit={openEdit}
+                                onDelete={handleDelete}
+                            />
+                        )) : (
+                            <div className="empty">
+                                Войдите или зарегистрируйтесь, 
+                                чтобы получить доступ к товарам
+                            </div>
                     )}
                 </div>
             </main>
@@ -192,6 +306,21 @@ export default function ProductsPage() {
                 open={profileOpen}
                 currentUser={currentUser}
                 onClose={closeProfile}
+                onExit={handleExit}
+            />
+
+            <UsersListModal 
+                open={isUserListOpen}
+                onClose={closeUsersList}
+                users={users}
+                onEdit={openUserChange}
+                onDelete={handleDeleteUser}
+            />
+            <UserChange 
+                open={isUserChangeOpen}
+                onClose={closeUserChange}
+                initialUser={editingUser}
+                onSubmit={handleUserChange}
             />
         </div>
     );

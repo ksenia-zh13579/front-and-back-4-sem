@@ -43,6 +43,8 @@ export const api = {
 
     login: async (userData) => {
         let response = await apiClient.post("/auth/login", userData);
+        localStorage.setItem("accessToken", response.data.accessToken);
+        localStorage.setItem("refreshToken", response.data.refreshToken);
         return response.data;
     },
 
@@ -54,7 +56,27 @@ export const api = {
     refresh: async (refreshToken) => {
         let response = await apiClient.post("/auth/refresh", refreshToken);
         return response.data;
-    }
+    },
+
+    getUsers : async () => {
+        let response = await apiClient.get("/users");
+        return response.data;
+    },
+
+    getUserById: async (id) => {
+        let response = await apiClient.get(`/users/${id}`);
+        return response.data;
+    },
+
+    updateUser: async (id, user) => {
+        let response = await apiClient.patch(`/users/${id}`, user);
+        return response.data;
+    },
+
+    deleteUser: async (id) => {
+        let response = await apiClient.delete(`/users/${id}`);
+        return response.data;
+    },
 }
 
 apiClient.interceptors.request.use(

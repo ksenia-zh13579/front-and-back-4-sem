@@ -1,5 +1,10 @@
-export default function UserModal({open, currentUser, onClose}) {
+export default function UserModal({open, currentUser, onClose, onExit}) {
+
     if (!open) return null;
+
+    let roleStr = "Пользователь";
+    if (currentUser.role === "admin") roleStr = "Администратор";
+    else if (currentUser.role === "seller") roleStr = "Продавец";
 
     return (
         <div className="backdrop" onMouseDown={onClose}>
@@ -27,6 +32,15 @@ export default function UserModal({open, currentUser, onClose}) {
                     <div className="userProperty">
                         <div className="userProperty__title">Фамилия: </div>
                         <div className="userProperty__value">{currentUser.lastName}</div>
+                    </div>
+                    <div className="userProperty">
+                        <div className="userProperty__title">Роль: </div>
+                        <div className="userProperty__value">{roleStr}</div>
+                    </div>
+                    <div className="modal__footer">
+                        <button className="btn btn--danger" onClick={() => onExit()}>
+                            Выйти
+                        </button>
                     </div>
                 </div>
             </div>
