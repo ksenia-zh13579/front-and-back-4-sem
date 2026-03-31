@@ -2,6 +2,8 @@ const contentDiv = document.getElementById('app-content');
 const homeBtn = document.getElementById('home-btn');
 const aboutBtn = document.getElementById('about-btn');
 
+const socket = io(/*'http://localhost:3001'*/);
+
 function setActiveButton(activeId) {
     [homeBtn, aboutBtn].forEach(btn => btn.classList.remove('active'));
     document.getElementById(activeId).classList.add('active');
@@ -44,15 +46,20 @@ function initNotes() {
 
     function loadNotes() {
         const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-        list.innerHTML = notes.map(note => `<li class="card" style="marginbottom: 0.5rem; padding: 0.5rem;">${note}</li>`).join('');
+        list.innerHTML = notes.map(note => `<li class="card" style="marginbottom: 0.5rem; padding: 0.5rem;">${note.datetime.date} : ${note.text}</li>`).join('');
     }
 
-    function addNote(text) {
+    function addNote(text, datetime) {
         const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-        notes.push(text);
+        const newNote = { id: Date.now(), text, datetime: datetime || '' };
+        notes.push(newNote);
         localStorage.setItem('notes', JSON.stringify(notes));
         loadNotes();
+
+        // Отправляем событие на сервер
+        socket.emit('newTask', { text, timestamp: Date.now() });
     }
+
 
     form.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -68,10 +75,113 @@ function initNotes() {
 }
 
 // Регистрация Service Worker
-if ('serviceWorker' in navigator) {
+/* if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
             .then(reg => console.log('SW registered:', reg.scope))
             .catch(err => console.log('SW registration failed:', err));
+    });
+} */
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+
+    return outputArray;
+}
+
+async function subscribeToPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window))
+        return;
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array('BM1z2pJ1dpUBDcBK9GcBPT6fJSHsLXrN2h-FaKSRn8rKEhwSd9TAAXrp3EcfuspPIRp7OgMlAjQJ0uPdPOZ6Fy0')
+        });
+
+        await fetch('https://localhost:3001/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subscription)
+        });
+
+        console.log('Подписка на push отправлена');
+    } catch (err) {
+        console.error('Ошибка подписки на push:', err);
+    }
+}
+
+async function unsubscribeFromPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window))
+        return;
+
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+
+    if (subscription) {
+        await fetch('https://localhost:3001/unsubscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: subscription.endpoint })
+        });
+
+        await subscription.unsubscribe();
+        console.log('Отписка выполнена');
+    }
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const reg = await navigator.serviceWorker.register('/sw.js');
+            console.log('SW registered');
+
+            const enableBtn = document.getElementById('enable-push');
+            const disableBtn = document.getElementById('disable-push');
+
+            if (enableBtn && disableBtn) {
+                const subscription = await reg.pushManager.getSubscription();
+
+                if (subscription) {
+                    enableBtn.style.display = 'none';
+                    disableBtn.style.display = 'inline-block';
+                }
+
+                enableBtn.addEventListener('click', async () => {
+                    if (Notification.permission === 'denied') {
+                        alert('Уведомления запрещены. Разрешите их в настройках браузера.');
+                        return;
+                    }
+
+                    if (Notification.permission === 'default') {
+                        const permission = await Notification.requestPermission();
+                        if (permission !== 'granted') {
+                            alert('Необходимо разрешить уведомления.');
+                            return;
+                        }
+                    }
+
+                    await subscribeToPush();
+                    enableBtn.style.display = 'none';
+                    disableBtn.style.display = 'inline-block';
+                });
+
+                disableBtn.addEventListener('click', async () => {
+                    await unsubscribeFromPush();
+                    disableBtn.style.display = 'none';
+                    enableBtn.style.display = 'inline-block';
+                });
+            }
+        } catch (err) {
+            console.log('SW registration failed:', err);
+        }
     });
 }
