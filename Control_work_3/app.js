@@ -43,21 +43,40 @@ function initNotes() {
     const form = document.getElementById('note-form');
     const input = document.getElementById('note-input');
     const list = document.getElementById('notes-list');
+    const reminderForm = document.getElementById('reminder-form');
+    const reminderText = document.getElementById('reminder-text');
+    const reminderTime = document.getElementById('reminder-time');
 
     function loadNotes() {
         const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-        list.innerHTML = notes.map(note => `<li class="card" style="marginbottom: 0.5rem; padding: 0.5rem;">${note.datetime.date} : ${note.text}</li>`).join('');
+        list.innerHTML = notes.map(note => {
+            let reminderInfo = '';
+            if (note.reminder) {
+                const date = new Date(note.reminder);
+                reminderInfo = `<br><small>!!! Напоминание: ${date.toLocaleString()}</small>`;
+            }
+            return `<li class="card" style="margin-bottom: 0.5rem; padding: 0.5rem;">${note.text}${reminderInfo}</li>`;                
+        }).join('');
     }
 
-    function addNote(text, datetime) {
+    function addNote(text, reminderTimestamp = null) {
         const notes = JSON.parse(localStorage.getItem('notes') || '[]');
-        const newNote = { id: Date.now(), text, datetime: datetime || '' };
+        const newNote = { id: Date.now(), text: text, reminder: reminderTimestamp };
         notes.push(newNote);
         localStorage.setItem('notes', JSON.stringify(notes));
         loadNotes();
 
-        // Отправляем событие на сервер
-        socket.emit('newTask', { text, timestamp: Date.now() });
+        // Отправляем событие на сервер (только если есть напоминание)
+        if (reminderTimestamp) {
+            socket.emit('newReminder', {
+                id: newNote.id,
+                text: text,
+                reminderTime: reminderTimestamp
+            });
+        } else {
+            // Можно оставить старый эмит для уведомлений о новых заметках
+            socket.emit('newTask', { text, timestamp: Date.now() });
+        }
     }
 
 
@@ -71,17 +90,28 @@ function initNotes() {
         }
     });
 
+    // Обработка заметки с напоминанием
+    reminderForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const text = reminderText.value.trim();
+        const datetime = reminderTime.value;
+
+        if (text && datetime) {
+            const timestamp = new Date(datetime).getTime();
+
+            if (timestamp > Date.now()) {
+                addNote(text, timestamp);
+                reminderText.value = '';
+                reminderTime.value = '';
+            } else {
+                alert('Дата напоминания должна быть в будущем');
+            }
+        }
+    });
+
     loadNotes();
 }
-
-// Регистрация Service Worker
-/* if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('SW registered:', reg.scope))
-            .catch(err => console.log('SW registration failed:', err));
-    });
-} */
 
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -107,7 +137,7 @@ async function subscribeToPush() {
             applicationServerKey: urlBase64ToUint8Array('BM1z2pJ1dpUBDcBK9GcBPT6fJSHsLXrN2h-FaKSRn8rKEhwSd9TAAXrp3EcfuspPIRp7OgMlAjQJ0uPdPOZ6Fy0')
         });
 
-        await fetch('https://localhost:3001/subscribe', {
+        await fetch('http://localhost:3001/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subscription)
@@ -127,7 +157,7 @@ async function unsubscribeFromPush() {
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
-        await fetch('https://localhost:3001/unsubscribe', {
+        await fetch('http://localhost:3001/unsubscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ endpoint: subscription.endpoint })
